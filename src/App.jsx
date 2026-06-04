@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -364,24 +365,40 @@ const ProdukForm = ({ init, rms, kc, onSave, onCancel }) => {
 export default function App() {
   const [activeKC, setActiveKC] = useState("KC Samarinda Gajah Mada");
   const [menu, setMenu] = useState("overview");
-const [pts, setPts] = useState(() => {
-  const savedPts = localStorage.getItem("bri_monitor_pts");
-  return savedPts ? JSON.parse(savedPts) : INIT_DATA.pts;
-});
-
-const [rms, setRms] = useState(() => {
-  const savedRms = localStorage.getItem("bri_monitor_rms");
-  return savedRms ? JSON.parse(savedRms) : INIT_DATA.rms;
-});
-  const [detailPT, setDetailPT] = useState(null);
-  const [dismissedAlerts, setDismissedAlerts] = useState([]);
-useEffect(() => {
-  localStorage.setItem("bri_monitor_pts", JSON.stringify(pts));
-}, [pts]);
+const [pts, setPts] = useState(INIT_DATA.pts);
+const [rms, setRms] = useState(INIT_DATA.rms);
+const [loading, setLoading] = useState(true);
+const [detailPT, setDetailPT] = useState(null);
+const [dismissedAlerts, setDismissedAlerts] = useState([]);
 
 useEffect(() => {
-  localStorage.setItem("bri_monitor_rms", JSON.stringify(rms));
-}, [rms]);
+  async function loadCloudData() {
+    try {
+      const { data: ptsCloud } = await supabase.from('dashboard_data').select('value').eq('key', 'pts').single();
+      if (ptsCloud) setPts(ptsCloud.value);
+
+      const { data: rmsCloud } = await supabase.from('dashboard_data').select('value').eq('key', 'rms').single();
+      if (rmsCloud) setRms(rmsCloud.value);
+    } catch (err) {
+      console.log("Gagal memuat database cloud, menggunakan data lokal bawaan.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  loadCloudData();
+}, []);
+
+useEffect(() => {
+  if (!loading) {
+    supabase.from('dashboard_data').upsert({ key: 'pts', value: pts }).then();
+  }
+}, [pts, loading]);
+
+useEffect(() => {
+  if (!loading) {
+    supabase.from('dashboard_data').upsert({ key: 'rms', value: rms }).then();
+  }
+}, [rms, loading]);
 
   // ─ Filtered data
   const filteredPTs = activeKC === "Semua KC" ? pts : pts.filter(p => p.kc === activeKC);
