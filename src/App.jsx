@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -364,10 +364,24 @@ const ProdukForm = ({ init, rms, kc, onSave, onCancel }) => {
 export default function App() {
   const [activeKC, setActiveKC] = useState("KC Samarinda Gajah Mada");
   const [menu, setMenu] = useState("overview");
-  const [pts, setPts] = useState(INIT_DATA.pts);
-  const [rms, setRms] = useState(INIT_DATA.rms);
+const [pts, setPts] = useState(() => {
+  const savedPts = localStorage.getItem("bri_monitor_pts");
+  return savedPts ? JSON.parse(savedPts) : INIT_DATA.pts;
+});
+
+const [rms, setRms] = useState(() => {
+  const savedRms = localStorage.getItem("bri_monitor_rms");
+  return savedRms ? JSON.parse(savedRms) : INIT_DATA.rms;
+});
   const [detailPT, setDetailPT] = useState(null);
   const [dismissedAlerts, setDismissedAlerts] = useState([]);
+useEffect(() => {
+  localStorage.setItem("bri_monitor_pts", JSON.stringify(pts));
+}, [pts]);
+
+useEffect(() => {
+  localStorage.setItem("bri_monitor_rms", JSON.stringify(rms));
+}, [rms]);
 
   // ─ Filtered data
   const filteredPTs = activeKC === "Semua KC" ? pts : pts.filter(p => p.kc === activeKC);
